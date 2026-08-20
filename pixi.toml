@@ -1,0 +1,24 @@
+[workspace]
+authors = ["mojothon<rontomai@gmail.com>"]
+channels = [
+    "https://conda.modular.com/max/",
+    "conda-forge",
+    "https://repo.prefix.dev/modular-community",
+    "https://prefix.dev/mojo-force"
+]
+description = "a json package using mojo programming language."
+name = "json"
+platforms = ["linux-64"]  # TODO: add other platforms "osx-arm64",
+version = "0.1.0"
+
+
+[tasks]
+test = "pixi run mojo run tests/test_main.mojo"
+build = "rattler-build build -r src -c https://conda.modular.com/max/ -c https://prefix.dev/mojo-force -c https://repo.prefix.dev/modular-community   -c conda-forge --skip-existing=all"
+publish = { cmd = "bash scripts/publish.sh", env = { PREFIX_API_KEY = "$PREFIX_API_KEY" } }
+
+[dependencies]
+mojo = ">=1.0.0,<2"
+python = ">=3.10,<=3.14"
+# json.gpu 内核文件引用 max.gpu(precompile 时需要 max 提供 gpu 模块)
+max = ">=26.5.0,<27"

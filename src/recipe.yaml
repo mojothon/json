@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+
+context:
+  version: "0.1.0"
+
+package:
+  name: "json"
+  version: 0.1.0
+
+source:
+  - path: .
+  - path: ../LICENSE
+  - path: ../tests
+  # work 目录需要 pixi.toml,build 阶段的 `pixi run mojo precompile json`
+  # 才能找到 manifest(与 nova recipe 的 source 配置保持一致)。
+  - path: ../pixi.toml
+
+build:
+  script:
+    - mkdir -p ${PREFIX}/lib/mojo
+    - pixi run mojo precompile json
+    - cp json.mojoc ${PREFIX}/lib/mojo/json.mojoc
+requirements:
+  run:
+    # 上限 <2 排除 Modular 25.x 老 dev 版(25 > 1 会被 conda 排序优先选中,
+    # 导致测试环境拿到 25.6.0.dev* 而非 1.0.0 final,语法/模块解析均不兼容)。
+    - mojo >= 1.0.0,<2
+    # json.gpu 模块引用 max.gpu,json.mojoc 惰性引用,运行时需可解析 max。
+    - max >= 26.5.0,<27
+
+tests:
+  - script:
+      # Lightweight publish gate: build + run a smoke test against the
+      # packaged json.mojoc.  No pixi env / no tests/ dir copy needed.
+      - mojo build -o /tmp/json_smoke -I ${PREFIX}/lib/mojo smoke_test.mojo
+      - /tmp/json_smoke
+
+    files:
+      # Extra files to be copied to the test directory from the "work directory"
+      source:
+        - smoke_test.mojo
+
+about:
+  homepage: https://github.com/mojothon/json
+  license: MIT
+  license_file: LICENSE
+  summary: a json package using mojo programming language.. https://github.com/mojothon/json
+  repository: https://github.com/mojothon/json

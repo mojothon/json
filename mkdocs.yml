@@ -1,0 +1,46 @@
+site_name: json
+site_author: mojothon
+site_description: 基于 Mojo 的高性能 JSON 库——纯 Mojo 零 FFI 解析、CPU/GPU 统一流水线、反射序列化、RFC 查询与流式解析。
+
+repo_url: https://github.com/mojothon/json
+edit_uri: edit/master/docs/
+copyright: Copyright &copy; <a target=_blanks href="https://www.github.com/mojothon">mojothon</a>
+
+theme:
+  name: shadocs
+  logo: '/images/logo.png'
+  favicon: favicon.ico
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.instant
+    - navigation.tabs
+  language: cn
+  highlightjs: true
+  hljs_languages:
+    - python 
+    - javascript
+    - shell
+    - django
+  
+
+# Footer
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mojothon
+      name: mojothon 
+
+markdown_extensions:
+  - admonition
+  - toc:
+      toc_depth: 2
+      permalink: True
+
+# Page tree
+nav:
+  - 主页: index.md
+  - 快速开始: quickstart.md
+  - API 参考: api.md
+  - 进阶指南: advanced.md
+  - 版本: version.md
