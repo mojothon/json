@@ -444,6 +444,21 @@ def _evaluate_filter(value: Value, expr: String) -> Bool:
     return False
 
 
+def _num(v: Value) -> Float64:
+    """Numeric value of a numeric tape entry, without raising.
+
+    Callers have already screened with ``is_int()`` / ``is_float()``, so the
+    ``try`` is unreachable in practice; it only keeps these non-raises
+    comparison helpers compiling against the raising ``float_value()``.
+    """
+    if v.is_float():
+        try:
+            return v.float_value()
+        except:
+            return 0.0
+    return Float64(v.int_value())
+
+
 def _values_equal_basic(a: Value, b: Value) -> Bool:
     """Basic value equality check."""
     if a.is_null() and b.is_null():
@@ -453,22 +468,20 @@ def _values_equal_basic(a: Value, b: Value) -> Bool:
     if a.is_int() and b.is_int():
         return a.int_value() == b.int_value()
     if a.is_float() and b.is_float():
-        return a.float_value() == b.float_value()
+        return _num(a) == _num(b)
     if a.is_string() and b.is_string():
         return a.string_value() == b.string_value()
     # Compare numbers across types
     if (a.is_int() or a.is_float()) and (b.is_int() or b.is_float()):
-        var af = a.float_value() if a.is_float() else Float64(a.int_value())
-        var bf = b.float_value() if b.is_float() else Float64(b.int_value())
-        return af == bf
+        return _num(a) == _num(b)
     return False
 
 
 def _compare_values(a: Value, b: Value) -> Int:
     """Compare two values. Returns -1, 0, or 1."""
     if (a.is_int() or a.is_float()) and (b.is_int() or b.is_float()):
-        var af = a.float_value() if a.is_float() else Float64(a.int_value())
-        var bf = b.float_value() if b.is_float() else Float64(b.int_value())
+        var af = _num(a)
+        var bf = _num(b)
         if af < bf:
             return -1
         elif af > bf:

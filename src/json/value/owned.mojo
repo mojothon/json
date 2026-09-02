@@ -536,23 +536,39 @@ def _owned_to_json(o: OwnedValue) -> String:
 
 
 def _escape_json_string(s: String) -> String:
-    """Render a Mojo string as a JSON string literal."""
+    """Render a Mojo string as a JSON string literal.
+
+    Non-ASCII bytes are copied through verbatim as raw UTF-8 byte runs
+    (never re-encoded per byte).
+    """
     var out = String('"')
     var bytes = s.as_bytes()
-    for i in range(len(bytes)):
+    var n = len(bytes)
+    var run_start = 0
+    for i in range(n):
         var c = bytes[i]
         if c == UInt8(ord('"')):
+            out += s[byte=run_start:i]
             out += '\\"'
+            run_start = i + 1
         elif c == UInt8(ord("\\")):
+            out += s[byte=run_start:i]
             out += "\\\\"
+            run_start = i + 1
         elif c == UInt8(ord("\n")):
+            out += s[byte=run_start:i]
             out += "\\n"
+            run_start = i + 1
         elif c == UInt8(ord("\r")):
+            out += s[byte=run_start:i]
             out += "\\r"
+            run_start = i + 1
         elif c == UInt8(ord("\t")):
+            out += s[byte=run_start:i]
             out += "\\t"
-        else:
-            out += chr(Int(c))
+            run_start = i + 1
+    if run_start < n:
+        out += s[byte=run_start:n]
     out += '"'
     return out^
 

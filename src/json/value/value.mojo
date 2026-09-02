@@ -163,7 +163,13 @@ struct Value(Copyable, Movable, Writable):
     def int_value(self) -> Int64:
         return self._doc[].get_int(self._tape_idx)
 
-    def float_value(self) -> Float64:
+    def float_value(self) raises -> Float64:
+        """Read the value as ``Float64``.
+
+        Both ``FLOAT`` and ``INT`` tape entries are accepted (``INT``
+        entries are converted from the tape payload); any other type
+        raises ``Error``.
+        """
         return self._doc[].get_float(self._tape_idx)
 
     def string_value(self) -> String:
@@ -506,7 +512,7 @@ struct Value(Copyable, Movable, Writable):
 # ---------------------------------------------------------------------------
 
 
-def _value_to_json(v: Value) -> String:
+def _value_to_json(v: Value) raises -> String:
     """Convert a Value to its JSON string representation.
 
     Used by `Value.set` / `Value.append` to render the new value into
@@ -590,7 +596,10 @@ def _emit_view_json(doc: ArcPointer[Document], tape_idx: Int) -> String:
     if tag == TAPE_TAG_INT:
         return String(d.get_int(tape_idx))
     if tag == TAPE_TAG_FLOAT:
-        return String(d.get_float(tape_idx))
+        try:
+            return String(d.get_float(tape_idx))
+        except:
+            return "0"
     if tag == TAPE_TAG_STRING or tag == TAPE_TAG_STRING_OWNED:
         var s = d.get_string(tape_idx)
         return _escape_json_string(s)
@@ -623,33 +632,54 @@ def _emit_view_json(doc: ArcPointer[Document], tape_idx: Int) -> String:
 def _escape_json_string(s: String) -> String:
     """Wrap a string in quotes and escape the JSON-mandatory bytes
     (`\"`, `\\`, control chars 0..31). Used by `_emit_view_json`.
+
+    Non-ASCII bytes are copied through verbatim as raw UTF-8 byte runs
+    (never re-encoded per byte).
     """
     var out = String('"')
     var b = s.as_bytes()
-    for i in range(len(b)):
+    var n = len(b)
+    var run_start = 0
+    for i in range(n):
         var c = b[i]
         if c == UInt8(ord('"')):
+            out += s[byte=run_start:i]
             out += '\\"'
+            run_start = i + 1
         elif c == UInt8(ord("\\")):
+            out += s[byte=run_start:i]
             out += "\\\\"
+            run_start = i + 1
         elif c == UInt8(ord("\n")):
+            out += s[byte=run_start:i]
             out += "\\n"
+            run_start = i + 1
         elif c == UInt8(ord("\r")):
+            out += s[byte=run_start:i]
             out += "\\r"
+            run_start = i + 1
         elif c == UInt8(ord("\t")):
+            out += s[byte=run_start:i]
             out += "\\t"
+            run_start = i + 1
         elif c == UInt8(ord("\b")):
+            out += s[byte=run_start:i]
             out += "\\b"
+            run_start = i + 1
         elif c == UInt8(ord("\f")):
+            out += s[byte=run_start:i]
             out += "\\f"
+            run_start = i + 1
         elif c < UInt8(0x20):
+            out += s[byte=run_start:i]
             out += "\\u00"
             var hi = Int(c) >> 4
             var lo = Int(c) & 0xF
             out += chr(ord("0") + hi) if hi < 10 else chr(ord("a") + hi - 10)
             out += chr(ord("0") + lo) if lo < 10 else chr(ord("a") + lo - 10)
-        else:
-            out += chr(Int(c))
+            run_start = i + 1
+    if run_start < n:
+        out += s[byte=run_start:n]
     out += '"'
     return out^
 
@@ -684,7 +714,10 @@ def _view_eq(a: Value, b: Value) -> Bool:
     if a.is_float() != b.is_float():
         return False
     if a.is_float():
-        return a.float_value() == b.float_value()
+        try:
+            return a.float_value() == b.float_value()
+        except:
+            return False
     if a.is_string() != b.is_string():
         return False
     if a.is_string():

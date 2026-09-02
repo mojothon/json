@@ -290,9 +290,22 @@ struct Document(Copyable, Movable):
             return Int64(payload | (UInt64(0xF) << 60))
         return Int64(payload)
 
-    def get_float(self, tape_idx: Int) -> Float64:
-        var pool_idx = Int(self.get_payload(tape_idx))
-        return self.float_pool[pool_idx]
+    def get_float(self, tape_idx: Int) raises -> Float64:
+        """Read a numeric entry as ``Float64``.
+
+        ``TAPE_TAG_FLOAT`` entries index ``float_pool``; ``TAPE_TAG_INT``
+        entries carry the value directly in the tape payload and are
+        converted (treating an INT payload as a pool index used to read
+        out of bounds — the payload is a 60-bit integer, not a pool
+        offset). Other tags raise ``Error``.
+        """
+        var tag = self.get_tag(tape_idx)
+        if tag == TAPE_TAG_FLOAT:
+            var pool_idx = Int(self.get_payload(tape_idx))
+            return self.float_pool[pool_idx]
+        if tag == TAPE_TAG_INT:
+            return Float64(self.get_int(tape_idx))
+        raise Error("Value is not a float")
 
     def get_string_offset(self, tape_idx: Int) -> Int:
         return payload_hi30(self.get_payload(tape_idx))

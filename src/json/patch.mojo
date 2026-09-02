@@ -544,6 +544,16 @@ def _array_remove(arr: Value, idx: Int) raises -> Value:
     return loads(json)
 
 
+def _num(v: Value) -> Float64:
+    """Numeric value of a numeric tape entry, without raising."""
+    if v.is_float():
+        try:
+            return v.float_value()
+        except:
+            return 0.0
+    return Float64(v.int_value())
+
+
 def _values_equal(a: Value, b: Value) -> Bool:
     """Check if two values are equal."""
     if a.is_null() and b.is_null():
@@ -553,7 +563,7 @@ def _values_equal(a: Value, b: Value) -> Bool:
     if a.is_int() and b.is_int():
         return a.int_value() == b.int_value()
     if a.is_float() and b.is_float():
-        return a.float_value() == b.float_value()
+        return _num(a) == _num(b)
     if a.is_string() and b.is_string():
         return a.string_value() == b.string_value()
     if a.is_array() and b.is_array():

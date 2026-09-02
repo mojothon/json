@@ -54,16 +54,23 @@ def format_error_context(
     if start > 0:
         result += "..."
 
+    var run_start = start
     for i in range(start, end):
         var c = source_bytes[i]
         if c == UInt8(ord("\n")):
+            result += source[byte=run_start:i]
             result += "\\n"
+            run_start = i + 1
         elif c == UInt8(ord("\r")):
+            result += source[byte=run_start:i]
             result += "\\r"
+            run_start = i + 1
         elif c == UInt8(ord("\t")):
+            result += source[byte=run_start:i]
             result += "\\t"
-        else:
-            result += chr(Int(c))
+            run_start = i + 1
+    if run_start < end:
+        result += source[byte=run_start:end]
 
     if end < n:
         result += "..."

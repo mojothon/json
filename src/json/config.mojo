@@ -148,26 +148,25 @@ def _strip_comments(json: String) -> String:
     var i = 0
     var in_string = False
     var escaped = False
+    var run_start = 0
 
     while i < n:
         var c = json_bytes[i]
 
-        # Handle string state
+        # Bytes inside strings (incl. quotes and escape pairs) are part
+        # of the verbatim run.
         if escaped:
             escaped = False
-            result += chr(Int(c))
             i += 1
             continue
 
         if c == UInt8(ord("\\")) and in_string:
             escaped = True
-            result += chr(Int(c))
             i += 1
             continue
 
         if c == UInt8(ord('"')):
             in_string = not in_string
-            result += chr(Int(c))
             i += 1
             continue
 
@@ -177,13 +176,16 @@ def _strip_comments(json: String) -> String:
 
             # Single-line comment
             if next_c == UInt8(ord("/")):
+                result += json[byte=run_start:i]
                 i += 2
                 while i < n and json_bytes[i] != UInt8(ord("\n")):
                     i += 1
+                run_start = i
                 continue
 
             # Multi-line comment
             if next_c == UInt8(ord("*")):
+                result += json[byte=run_start:i]
                 i += 2
                 while i + 1 < n:
                     if json_bytes[i] == UInt8(ord("*")) and json_bytes[
@@ -192,10 +194,14 @@ def _strip_comments(json: String) -> String:
                         i += 2
                         break
                     i += 1
+                run_start = i
                 continue
 
-        result += chr(Int(c))
+        # Everything else stays in the verbatim run.
         i += 1
+
+    if run_start < n:
+        result += json[byte=run_start:n]
 
     return result^
 
@@ -209,50 +215,49 @@ def _remove_trailing_commas(json: String) -> String:
     var in_string = False
     var escaped = False
     var last_comma_pos = -1
+    var run_start = 0
 
     while i < n:
         var c = json_bytes[i]
 
-        # Handle string state
+        # Bytes inside strings (incl. quotes and escape pairs) are part
+        # of the verbatim run.
         if escaped:
             escaped = False
-            result += chr(Int(c))
             i += 1
             continue
 
         if c == UInt8(ord("\\")) and in_string:
             escaped = True
-            result += chr(Int(c))
             i += 1
             continue
 
         if c == UInt8(ord('"')):
             in_string = not in_string
-            result += chr(Int(c))
             last_comma_pos = -1
             i += 1
             continue
 
         if in_string:
-            result += chr(Int(c))
             i += 1
             continue
 
-        # Track comma position
+        # Track comma position (comma is emitted on its own).
         if c == UInt8(ord(",")):
+            result += json[byte=run_start:i]
             last_comma_pos = result.byte_length()
-            result += chr(Int(c))
+            result += ","
+            run_start = i + 1
             i += 1
             continue
 
-        # Skip whitespace when checking for trailing comma
+        # Skip whitespace when checking for trailing comma (stays in run)
         if (
             c == UInt8(ord(" "))
             or c == UInt8(ord("\t"))
             or c == UInt8(ord("\n"))
             or c == UInt8(ord("\r"))
         ):
-            result += chr(Int(c))
             i += 1
             continue
 
@@ -260,6 +265,7 @@ def _remove_trailing_commas(json: String) -> String:
         if (
             c == UInt8(ord("]")) or c == UInt8(ord("}"))
         ) and last_comma_pos >= 0:
+            result += json[byte=run_start:i]
             # Remove the trailing comma
             var before_comma = String(
                 unsafe_from_utf8=result.as_bytes()[:last_comma_pos]
@@ -268,10 +274,18 @@ def _remove_trailing_commas(json: String) -> String:
                 unsafe_from_utf8=result.as_bytes()[last_comma_pos + 1 :]
             )
             result = before_comma + after_comma
+            result += chr(Int(c))
+            run_start = i + 1
+            last_comma_pos = -1
+            i += 1
+            continue
 
-        result += chr(Int(c))
+        # Regular character (numbers, literals) — stays in the verbatim run.
         last_comma_pos = -1
         i += 1
+
+    if run_start < n:
+        result += json[byte=run_start:n]
 
     return result^
 

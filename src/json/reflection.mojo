@@ -375,7 +375,10 @@ def _ser_value(v: Value) -> String:
     elif v.is_int():
         return String(v.int_value())
     elif v.is_float():
-        return String(v.float_value())
+        try:
+            return String(v.float_value())
+        except:
+            return "0"
     elif v.is_array() or v.is_object():
         return v.raw_json()
     return "null"
