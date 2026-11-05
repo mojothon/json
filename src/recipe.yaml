@@ -18,6 +18,12 @@ source:
 build:
   script:
     - mkdir -p ${PREFIX}/lib/mojo
+    # darwin 排除 gpu 子包:json/gpu import max.gpu(CUDA 栈,_cublas/_cudnn
+    # 同族),mac 的 max 包不含 gpu 模块,编译必然失败——2026-11-05 macos-14
+    # 探针 C4 第 6 轮实录('unable to locate module gpu')。包内无任何模块
+    # 引用 json.gpu(独立可选子包),排除不影响核心 API;mac 上 `import
+    # json.gpu` 得到明确的模块缺失错误,与"gpu 是 CUDA-only"的语义一致。
+    - if [ "$(uname -s)" = "Darwin" ]; then rm -rf json/gpu; fi
     # 直接调 PATH 中的 mojo,不要 `pixi run`:work 目录里的 pixi.toml 平台是
     # linux-64,mac 构建时 pixi 直接拒跑("supported platforms are linux-64"
     # —— 2026-11-05 macos-14 探针 C4 实测抓到)。nova recipe 同款修法;
