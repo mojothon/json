@@ -25,6 +25,14 @@ build:
     - MODULAR_HOME=$(dirname $(dirname $(command -v mojo)))/share/max mojo precompile json
     - cp json.mojoc ${PREFIX}/lib/mojo/json.mojoc
 requirements:
+  build:
+    # 构建自包含:precompile 需要 mojo(编译器)与 max(json.gpu eager import
+    # 的 max.gpu.primitives 经 lib/mojo/max.mojoc 解析——dev env 里 std.mojoc
+    # 与 max.mojoc 同在 $ENV/lib/mojo)。2026-11-05 macos-14 探针两轮实测:
+    # 没有 build reqs 时第一层卡 pixi 平台、第二层卡 max 解析。
+    # 版本与 run 段保持一致:mojoc 与编译器版本绑定,构建/运行 pin 必须同源。
+    - mojo >= 1.2.0,<2
+    - max >= 26.7.0,<27
   run:
     # 上限 <2 排除 Modular 25.x 老 dev 版(25 > 1 会被 conda 排序优先选中,
     # 导致测试环境拿到 25.6.0.dev* 而非 1.0.0 final,语法/模块解析均不兼容)。
