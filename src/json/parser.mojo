@@ -25,7 +25,7 @@ from .document import (
     TAPE_TAG_OBJECT,
 )
 from .types import JSONInput, JSONResult
-from std.sys.info import CompilationTarget
+from .gpu import parse_json_gpu, parse_gpu_to_value
 
 
 # =============================================================================
@@ -233,19 +233,9 @@ def _parse_gpu(s: String) raises -> Value:
     unsafe_memcpy(dest=bytes.unsafe_ptr(), src=data.unsafe_ptr(), count=n)
 
     var input_obj = JSONInput(bytes^)
+    var result = parse_json_gpu(input_obj^)
 
-    # max.gpu 是 CUDA 栈(_cublas/_cudnn 同族),mac 的 max 包不含 gpu 模块,
-    # json/gpu 在 darwin 构建中整个被排除(recipe)——这里编译期分支,mac 上
-    # 给明确的运行时错误而非编译失败(2026-11-05 macos-14 探针 C4 六轮实录)。
-    # 延迟导入是本仓既有用法(reflection.mojo / cpu/stage2.mojo 同款)。
-    comptime if CompilationTarget.is_macos():
-        raise Error(
-            "json: target='gpu' is CUDA-only (max.gpu) and is not built on macOS"
-        )
-    else:
-        from .gpu import parse_json_gpu, parse_gpu_to_value
-        var result = parse_json_gpu(input_obj^)
-        return parse_gpu_to_value(s, result^)
+    return parse_gpu_to_value(s, result^)
 
 
 def _parse_string_value(s: String, start: Int) raises -> Value:

@@ -18,12 +18,14 @@ source:
 build:
   script:
     - mkdir -p ${PREFIX}/lib/mojo
-    # darwin 排除 gpu 子包:json/gpu import max.gpu(CUDA 栈,_cublas/_cudnn
-    # 同族),mac 的 max 包不含 gpu 模块,编译必然失败——2026-11-05 macos-14
-    # 探针 C4 第 6 轮实录('unable to locate module gpu')。包内无任何模块
-    # 引用 json.gpu(独立可选子包),排除不影响核心 API;mac 上 `import
-    # json.gpu` 得到明确的模块缺失错误,与"gpu 是 CUDA-only"的语义一致。
-    - if [ "$(uname -s)" = "Darwin" ]; then rm -rf json/gpu; fi
+    # darwin 用替身包替换 json/gpu:json/gpu 是 CUDA-only(import max.gpu,
+    # mac 的 max 包不含 gpu 模块,'unable to locate module gpu'——2026-11-05
+    # macos-14 探针 C4 第 6 轮实录);而核心 parser 顶层急切导入 .gpu,且
+    # Mojo 对文本 import 的解析与 comptime 可达性无关(第 8 轮实录:comptime
+    # if 死分支里的 import 照样解析)——所以唯一干净的结构是构建期换包:
+    # 替身签名与真包一致(json_gpu_stub/,checked-in,在 json/ 包外不参与
+    # linux 预编译),调用即明确报错。改真包 gpu 签名时必须同步改替身。
+    - if [ "$(uname -s)" = "Darwin" ]; then rm -rf json/gpu && cp -r json_gpu_stub json/gpu; fi
     # 直接调 PATH 中的 mojo,不要 `pixi run`:work 目录里的 pixi.toml 平台是
     # linux-64,mac 构建时 pixi 直接拒跑("supported platforms are linux-64"
     # —— 2026-11-05 macos-14 探针 C4 实测抓到)。nova recipe 同款修法;
