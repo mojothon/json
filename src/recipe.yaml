@@ -1,11 +1,11 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
 
 context:
-  version: "0.1.2"
+  version: "0.2.1"
 
 package:
   name: "json"
-  version: 0.1.2
+  version: 0.2.1
 
 source:
   - path: .
@@ -18,15 +18,19 @@ source:
 build:
   script:
     - mkdir -p ${PREFIX}/lib/mojo
-    - pixi run mojo precompile json
+    # 直接调 PATH 中的 mojo,不要 `pixi run`:work 目录里的 pixi.toml 平台是
+    # linux-64,mac 构建时 pixi 直接拒跑("supported platforms are linux-64"
+    # —— 2026-11-05 macos-14 探针 C4 实测抓到)。nova recipe 同款修法;
+    # MODULAR_HOME 由 mojo 二进制路径上推两级到 env 根再拼 share/max。
+    - MODULAR_HOME=$(dirname $(dirname $(command -v mojo)))/share/max mojo precompile json
     - cp json.mojoc ${PREFIX}/lib/mojo/json.mojoc
 requirements:
   run:
     # 上限 <2 排除 Modular 25.x 老 dev 版(25 > 1 会被 conda 排序优先选中,
     # 导致测试环境拿到 25.6.0.dev* 而非 1.0.0 final,语法/模块解析均不兼容)。
-    - mojo >= 1.0.0,<2
+    - mojo >= 1.2.0,<2
     # json.gpu 模块引用 max.gpu,json.mojoc 惰性引用,运行时需可解析 max。
-    - max >= 26.5.0,<27
+    - max >= 26.7.0,<27
 
 tests:
   - script:
