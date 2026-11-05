@@ -16,7 +16,9 @@
 from json.types import JSONInput, JSONResult
 from json.value import Value
 
-_STUB_MSG = "json: target='gpu' is CUDA-only (max.gpu) and is not built on macOS"
+# 模块级常量:1.2 的 file-scope 写法是 `comptime NAME: Type = value`
+# (alias 在 1.2 不再接受这个形态——第九轮+本地最小复现实录)。
+comptime _STUB_MSG: String = "json: target='gpu' is CUDA-only (max.gpu) and is not built on macOS"
 
 
 def parse_json_gpu(
